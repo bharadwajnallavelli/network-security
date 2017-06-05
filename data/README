@@ -1,0 +1,25 @@
+Creating Certificates and Keys
+
+CA Keys:
+openssl genrsa -out CA.pem 2048
+openssl rsa -in CA.pem -outform PEM -pubout -out CA_public.pem
+openssl rsa -in CA.pem -out CA_private.pem -outform PEM
+
+CA Certificate:
+openssl req -config openssl-ca.cnf -key CA.pem -new -x509 -days 7300 -sha256 -extensions v3_ca -out CA_cert.pem
+
+Server Keys:
+openssl genrsa -out server.pem 2048
+
+Server Certificate signed by CA:
+openssl req -config ./openssl-ca.cnf -key server.pem -new -sha256 -out server_csr.pem
+openssl ca -config ./openssl-ca.cnf -extensions server_cert -days 365 -notext -md sha256 -in server_csr.pem -out server_cert.pem
+
+User Keys:
+openssl genrsa -out user1.pem 2048
+
+User Certificate Signed by CA:
+openssl req -config ./openssl-ca.cnf -key user1.pem -new -sha256 -out user1_csr.pem
+openssl ca -config ./openssl-ca.cnf -extensions usr_cert -days 365 -notext -md sha256 -in user1_csr.pem -out user1_cert.pem
+
+

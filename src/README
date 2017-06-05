@@ -1,0 +1,54 @@
+The checked in code will handle the server and client startup and connection.
+A very simple implementation of put and get are supplied for testing purposes.
+The security routines are stubbed out and the error handling is minimal.
+
+The files involved are:
+client_main.c      - the main routine for the client program (pictstor)
+server_main.c      - the main routine for the server program (pictstord)
+socket_funcs.c     - the socket routines
+file_transfer.c    - implements the get and put routines
+utils.c            - place holder for the mostly unimplemented security
+                     routines.
+
+To build the server (pictstord) and client (pictstor) run
+make all
+
+The server is run as pictstod <port>. The server will fork a new process
+for each client connection. The client handling process will exit when the
+connected client process exits. The server will continue running until
+terminated.
+
+At this point the client does not have a CLI, it only accepts a single put or get command from the command line. The client is run as
+pictstor <server ip address> <server port> get|put <filename>.
+
+For testing you will need to run the server and client from different
+directories because they read and write the files from the local directory.
+
+You can follow these steps for a simple test from the src directory.
+mkdir ctest  - create a test directory for the client
+mkdir stest  - create a test directory fro the server
+cp pictstor ctest/bintest  - copy a large binary file for testing
+
+In one terminal window:
+cd stest
+pictstord 5610  - start the server
+
+In another terminal window:
+cd ctest
+pictstor localhost 5610 put bintest
+diff bintest ../stest/bintest    - make sure the file got there ok
+rm bintest
+pictstor localhost 5610 get bintest
+diff bintest ../stest/bintest    - make sure the file got back ok
+
+You can also automate the setup of the tests and their execution 
+
+./test_setup.sh    ## Compiles the code, setup ctest and stest and their content
+cd stest 
+./pictstord 5610 
+
+In the other terminal 
+cd ctest 
+./run_tests.sh 
+
+

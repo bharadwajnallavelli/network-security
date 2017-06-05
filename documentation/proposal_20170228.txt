@@ -1,0 +1,36 @@
+We have been brainstorming about a storage repository (either FTP or a web server) to be accessed securely. Pulling and pushing from the repository would be encrypted (maybe using a session key). 
+ 
+I have thought of a practical application for this secure vault which is inspired by similar infrastructures existing in the industry, such as Maven Central or jCenter. 
+ 
+Both Maven Central http://central.maven.org/maven2/ and jCenter https://jcenter.bintray.com/ are global repositories where users who have an account can deploy binaries for public use. Maven central is mostly adopted by Java developers who use Apache Maven to build their code. jCenter is a superset, as it stores also C++ executables and any other type of binary and built with other tools. It is a popular place for Android developers. 
+ 
+For security reason any jar stored in these repositories must have a digital fingerprint and a signature. This is to prevent tampering of the jars during transmission. The other reason for signing the jars is nonrepudiation. Whatever binary is uploaded in the repository is traceable to whomever put it there. 
+ 
+For example in http://central.maven.org/maven2/com/android/tools/common/22.2.0/ you can see that for every jar there are md5 or sha1 fingerprints. And there is also an *.asc file which is the digital signature for the jar. You can find the same in jCenter https://jcenter.bintray.com/com/cisco/oss/foundation/commons/1.0.4-1/ 
+ 
+The typical software used for signing jars is PGP. For linux and mac a GNU version of PGP is available, called “GPG” which stands for “Gnu PGp”. 
+ 
+Read the concepts on this webpage http://central.sonatype.org/pages/working-with-pgp-signatures.html 
+It explains how the signing process and the verification of a signature takes place. We have covered exactly the same concepts in class. 
+ 
+In practice: 
+1. A signer must generate a PGP key pair which will be stored in a local keyring (once)
+2. The public key is uploaded by the user into a KDC  (once) 
+3. A file can be signed with the key and then uploaded to the repository (as many times as needed)
+4. Any user who downloads the binary can perform a signature verification (as many times as needed)
+ 
+My idea is to extend the usage to other types of vulnerable binaries. 
+For instance, a secure picture storage where only the authorized users are allowed to upload the pictures. For instance, this could become the picture storage service of a press agency. Since during the upload a user signs the pictures, the user is credited for it (copyright, royalties, etc.). 
+ 
+The thing is that PGP is a complete product and it uses its own KDC. So we would have to rewrite the subset of the functionality that we need, by using the functions available in OpenSSL. 
+ 
+Here’s what we need: 
+* An FTP storage for push and pulling pictures. 
+* The encryption functions for the FTP storage. 
+* A keystore which is capable to upload keys via FTP 
+* A very simple web server which is capable of browsing the content. The web server needs basic authorization scheme to allow users to signup/signin. 
+* A module capable to sign and verify jars - in practice our StrongePGP
+* The web server must serve an endpoint for distributing the public keys when a user (even an anonymous user) request signature verification 
+ 
+We do have a Apache available in www.cs.uml.edu What we need is to have some basic setup for user accounts, and I think I can reuse some code which I have written for Internet & Web Sytems 1. The server should be able to use MySQL or even simply "flat" files to store user credentials, public keys, etc. 
+

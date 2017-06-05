@@ -1,0 +1,90 @@
+## In order to get this program to work we need to have a certificate and a key with the server 
+## The server needs to read key and certificate, otherwise SSL defaults on not having any ciphers
+## See below what happens if there is no key nor certificate 
+
+
+## Starting the server 
+h-4.1$ ./serv 
+Connection from 100007f, port 928c
+3077867256:error:1408A0C1:SSL routines:SSL3_GET_CLIENT_HELLO:no shared cipher:s3_srvr.c:1361:
+
+## This is the client test function
+## Notice that the server is speaking from port 5610 on localhost 
+-bash-4.1$ openssl s_client -connect localhost:5610  -cipher "ALL:eNULL:@STRENGTH"
+CONNECTED(00000003)
+3077744364:error:14077410:SSL routines:SSL23_GET_SERVER_HELLO:sslv3 alert handshake failure:s23_clnt.c:744:
+---
+no peer certificate available
+---
+No client certificate CA names sent
+---
+SSL handshake has read 7 bytes and written 241 bytes
+---
+New, (NONE), Cipher is (NONE)
+Secure Renegotiation IS NOT supported
+Compression: NONE
+Expansion: NONE
+---
+
+## This is reproducible also with the test functions. 
+## Here's the client 
+-bash-4.1$ openssl s_client -connect localhost:5610  -cipher "ALL:eNULL:@STRENGTH"^C
+
+## Here's a mock server, which fails because no ciphers can be shared 
+-bash-4.1$ openssl s_server -accept 5610 -nocert -cipher "ALL:eNULL:@STRENGTH"
+Using default temp DH parameters
+Using default temp ECDH parameters
+ACCEPT
+ERROR
+3078325996:error:1408A0C1:SSL routines:SSL3_GET_CLIENT_HELLO:no shared cipher:s3_srvr.c:1361:
+shutting down SSL
+CONNECTION CLOSED
+ACCEPT
+
+## And this is our client working against that mock server. 
+-bash-4.1$ ./cli
+3077564152:error:14077410:SSL routines:SSL23_GET_SERVER_HELLO:sslv3 alert handshake failure:s23_clnt.c:744:
+
+
+## When I try the s_client against TD Bank the system works 
+openssl s_client -connect 23.209.105.156:443  -cipher "ALL:eNULL:@STRENGTH
+CONNECTED(00000003)
+depth=3 C = US, O = "VeriSign, Inc.", OU = Class 3 Public Primary Certification Authority
+verify return:1
+depth=2 C =
+
+
+## We definitively need a certificate. Creating one. 
+## The option "-nodes" allows to skip the passphrase
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes
+
+
+## Here’s the contents of the certificate which I created after answering a few questions 
+[root@new-host-2 openssl.d]# openssl x509 -in ./cert.pem -text 
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 15600917381152997661 (0xd88197b371d7811d)
+    Signature Algorithm: sha256WithRSAEncryption
+        Issuer: C=US, ST=MA, L=Billerica, O=gulia.org, CN=Riccardo Gulia/emailAddress=rgulia@yahoo.com
+        Validity
+            Not Before: Apr  1 23:55:16 2017 GMT
+            Not After : Apr  1 23:55:16 2018 GMT
+        Subject: C=US, ST=MA, L=Billerica, O=gulia.org, CN=Riccardo Gulia/emailAddress=rgulia@yahoo.com
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+
+### Now I can start the server and the client and get a connection!
+[root@new-host-2 openssl.d]# ./serv
+Connection from 100007f, port d0e3
+SSL connection using AES256-GCM-SHA384
+Client does not have certificate.
+Got 12 chars:'Hello World!'
+
+[root@new-host-2 openssl.d]# ./cli
+SSL connection using AES256-GCM-SHA384
+Server certificate:
+	subject: /C=US/ST=MA/L=Billerica/O=gulia.org/CN=Riccardo Gulia/emailAddress=rgulia@yahoo.com
+	issuer: /C=US/ST=MA/L=Billerica/O=gulia.org/CN=Riccardo Gulia/emailAddress=rgulia@yahoo.com
+Got 11 chars:'I hear you.'
+

@@ -1,0 +1,136 @@
+﻿This document describes the way messages are sent between the client and server processes.
+
+All the types involved are defined in pictstor.h. The message_type enum defines the types of messages. Add new values to the enum as needed to add new messages as features are added.
+
+The current definition is:
+
+typedef enum {
+  ACKNOWLEDGE = 1,  // acknowledge success or failure of an op
+  COMMAND,     // command to server from client (put, get, etc.)
+  FILE_TRANSFER, // transfer a block of a file
+  FILE_NAME,     // send file name
+  FILE_SIZE,     // send file size
+  DH_PARAMS,     // Diffie-Hellman params
+  DH_KEY_EXCHANGE,   // Diffie-Hellman key
+  CIPHERTEXT_HEADER,  // header for encrypted blocks
+  CIPHERTEXT_BLOCK_HEADER, // header for single encrypted block
+  CIPHERTEXT_DATA   // encrypted data
+  LS_ITEM         // ls info for one file
+} message_type;
+
+Depending on the message being sent, the data may be a type which is already defined, such as a long (for FILE_SIZE), a string (for FILE_NAME), or a DH structure (for DH_PARAMS). In other cases there should be a struct defined in pictstor.h. For example key_exchange_msg is used for exchanging Diffie-Hellman keys and ls_item_msg is used for the LS_ITEM message.
+
+#define MAX_DH_KEY_LEN 1024
+typedef struct {
+  int key_len;
+  unsigned char key[MAX_DH_KEY_LEN];
+} key_exchange_msg;
+
+#define FILE_NAME_LEN 1024
+#define FILE_TIMESTAMP_LEN 256
+typedef struct {
+  long valid;
+  long file_size;
+  char name[FILE_NAME_LEN];
+  char timestamp[FILE_TIMESTAMP_LEN];
+} ls_item_msg;
+
+To send a message use encrypted_send:
+int encrypted_send(long msg_type, const void *buf, long len);
+msg_type is the type from the message_type enum, buf is a pointer to the data to send, and len is the length of the data.
+
+For example, this call sends a file name to the other side:
+char *filename = “somefile.txt”;
+int error;
+
+error = encrypted_send(FILE_NAME,filename,strlen(filename+1));
+
+Use encrypted_recv to receive a message
+int encrypted_recv(long msg_type, void *buf, long maxlen, long *bytes_read);
+msg_type is the type from the message_type enum, buf is a pointer to the buffer to write the data to, maxlen is the maximum length of the data, and bytes_read will be set to the number of bytes transferred.
+
+For example, to receive a file name:
+char filename[FILE_NAME_LEN];
+int error;
+long bytes_read;
+
+error = encrypted_recv(FILE_NAME,filename,FILE_NAME_LEN,&bytes_read);
+
+Both of these routines return a int which will be 0 on success and non-zero on error.
+
+Characters or binary data can be transferred unchanged. Numbers need to be converted to network format before sending and back to host format when received. The htonl and ntohl (host to network and network to host) family of routines is used for this.
+
+For example, the supported commands are defined in the command enum:
+
+typedef enum {
+  GET_FILE,
+  PUT_FILE,
+  CD,
+  DEL,
+  LS,
+  // TODO: add other commands
+} command;
+
+A command is sent from the client to the server as a long:
+
+long cmd;
+int error;
+
+cmd = htonl( LS );
+error = encrypted_send(COMMAND,&cmd,sizeof(cmd));
+
+On the server side this is received as:
+ 
+int error = 0;
+command cmd;
+long tmp;
+long bytes_read;
+
+// get a command from the client (in network format)
+error = encrypted_recv(COMMAND, &tmp,sizeof(tmp),&bytes_read);
+if (error < 0) {
+  return error;
+}
+
+// convert the command to host format
+cmd = (command) ntohl(tmp);
+
+Any numbers within a struct also need to be converted between network and host format. For example, the server fills in and sends the ls_item_msg struct like this:
+
+ls_item_msg msg;
+int error = 0
+
+msg.valid = htonl(1);
+msg.file_size = htonl(sizes[i]);
+strncpy(msg.name,file_names[i],FILE_NAME_LEN);
+strncpy(msg.timestamp,timestamps[i],FILE_TIMESTAMP_LEN);
+
+error = encrypted_send(LS_ITEM,&msg,sizeof(msg));
+if (error ) {
+   fprintf(stderr,"Failed sending ls response\n");
+   return -1;
+}
+
+On the client (receiving) side the message is received and transformed like this:
+
+error = encrypted_recv(LS_ITEM,&msg,sizeof(msg),&bytes_read);
+if (error) {
+  fprintf(stderr,"Failed to receive ls response\n");
+  return error;
+}
+
+msg.valid = ntohl(msg.valid);
+msg.file_size = ntohl(msg.file_size);
+
+To allow for some error handling, the ACKNOWLEDGE message tells the other side if everything is working or if an error has occurred. The file transfer functions use this to handle errors if a file cannot be created or opened.
+
+The acknowledge_msg struct (shown above) has a success member which is 1 on success and 0 on failure, and a string msg that describes the failure (this is not set on success).
+
+Three convenience functions are defined for sending and recieving ACKNOWLEDGE messages: 
+int send_failure(const char *msg, int encrypted);
+int send_success(int encrypted);
+int get_acknowledge(acknowledge_msg *msg, int encrypted);
+
+The encrypted value should be set to 1 for any messages sent after the initial key exchange.
+
+

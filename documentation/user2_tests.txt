@@ -1,0 +1,23 @@
+
++ sleep 60
++ PORT=5612
++ echo 'INFO: Starting the client on port 5612'
+INFO: Starting the client on port 5612
++ cd src/user2
++ ./pictstor localhost 5612
+> > > receiving file blocks ... #################################################################################################
+receive file done
+receiving file blocks ... 
+receive file done
+> + ./pictstor localhost 5612 verify ducks.jpg
+File verified. Uploaded by user1 on Sun Apr 23 14:04:29 2017
++ rc=0
++ echo 'INFO: Client test completed. Sending signal to stop server'
+INFO: Client test completed. Sending signal to stop server
+++ grep pictstord
+++ grep 5612
+++ awk '{print $2}'
+++ ps -ef
++ PID=15774
++ kill -15 15774
++ exit 0

@@ -1,0 +1,6 @@
+This is to compare with EVP.d. The size of the cleartext and ciphertet is considerably bigger 
+The idea is the result of merging the EVP.d example with this one by James L. Polk 
+http://stackoverflow.com/questions/24856303/openssl-aes-256-cbc-via-evp-api-in-c
+
+
+

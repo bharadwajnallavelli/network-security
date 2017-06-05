@@ -1,0 +1,144 @@
+// gcc -DDEBUG=1 -O1 -g3 -Wall -Wextra -std=c99 -I/usr/local/ssl/macosx-x64/include test-rdrand.c -o test-rdrand.exe /usr/local/ssl/macosx-x64/lib/libcrypto.a
+// gcc -DNDEBUG=1 -O2 -g2 -Wall -Wextra -std=c99 -I/usr/local/ssl/macosx-x64/include test-rdrand.c -o test-rdrand.exe /usr/local/ssl/macosx-x64/lib/libcrypto.a
+#include <stdlib.h>
+#include <assert.h>
+
+#include <openssl/evp.h>
+#include <openssl/err.h>
+#include <openssl/engine.h>
+
+// #include <openssl/fips.h>
+
+typedef unsigned char byte;
+extern unsigned int OPENSSL_ia32cap_P[];
+extern void OPENSSL_cpuid_setup(void);
+
+#define UNUSED(x) ((void)(x))
+
+int main(int argc, char* argv[])
+{
+    UNUSED(argc), UNUSED(argv);
+    
+    int ret = EXIT_FAILURE;
+    unsigned long err = 0;
+    int rc = 0;
+    
+    // This is called by OPENSSL_load_builtin_engines()
+    OPENSSL_cpuid_setup();
+    
+    // These point to the same engine. One is used for ENGINE_finish, and
+    // the other is used for ENGINE_free.
+    ENGINE *eng1 = NULL, *eng2 = NULL;
+    
+    do {
+        
+        rc = FIPS_mode_set(1);
+        err = ERR_get_error();
+        
+        assert(1 == rc);
+        if(1 != rc) {
+           fprintf(stderr, "FIPS_mode_set failed, err = 0x%lx\n", err);
+           break; /* failed */
+        }
+        
+        int rdrand = OPENSSL_ia32cap_P[1] & (1<<(62-32));
+        if(rdrand)
+            fprintf(stdout, "rdrand is available\n");
+        else {
+            fprintf(stderr, "rdrand is not available\n");
+            // OPENSSL_ia32cap_P[1] |= (1<<(62-32));
+            // fprintf(stdout, "rdrand has been faked!\n");
+        }
+        
+        /* Load the engine of interest */
+        ENGINE_load_rdrand();
+        eng1 = ENGINE_by_id("rdrand");
+        err = ERR_get_error();
+        
+        assert(NULL != eng1);
+        if(NULL == eng1) {
+            fprintf(stderr, "ENGINE_load_rdrand failed, err = 0x%lx\n", err);
+            break; /* failed */
+        }
+        
+        // Make the assignment for proper cleanup (ENGINE_by_id needs one
+        // cleanup, ENGINE_init needs a second distinct cleanup).
+        rc = ENGINE_init( (eng2 = eng1) );
+        err = ERR_get_error();
+        
+        assert(0 != rc);
+        if(0 == rc) {
+            fprintf(stderr, "ENGINE_init failed, err = 0x%lx\n", err);
+            break; /* failed */
+        }
+        
+        /* Set the default RAND_method */
+        rc = ENGINE_set_default(eng2, ENGINE_METHOD_RAND);
+        err = ERR_get_error();
+        
+        assert(1 == rc);
+        if(1 != rc) {
+            fprintf(stderr, "ENGINE_set_default failed, err = 0x%lx\n", err);
+            break; /* failed */
+        }
+        
+        /* Extra testing */
+        ENGINE* t = ENGINE_get_default_RAND();
+        err = ERR_get_error();
+        if(t) ENGINE_free(t);
+        
+        assert(NULL != t);
+        if(NULL == t) {
+            fprintf(stderr, "ENGINE_get_default_RAND failed, err = 0x%lx\n", err);
+            break; /* failed */
+        }
+        
+        /* Bad - don't do this in production             */
+        /* Test to see if it crashes, or silently fails  */
+        /* because ENGINE_rdrand() does not accept seeds */
+        byte seed[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+        RAND_seed(seed, sizeof(seed));
+        
+        fprintf(stdout, "Generating bytes\n");
+        
+        /* Real testing begins */
+        byte buffer[1024*16];
+        
+        rc = RAND_bytes(buffer, sizeof(buffer));
+        err = ERR_get_error();
+        assert(1 == rc);
+        if(1 != rc) {
+            fprintf(stderr, "RAND_bytes (1) failed, err = 0x%lx\n", err);
+            break; /* failed */
+        }
+        
+        /* Devilish here. Try to invoke a bus error (Linux) or Data Alignment exception (Windows). */
+        /* It will brick an older ARM device if they ever get a `rdrand`. Fortunately, the         */
+        /* offending code in in eng_rand.c, so there are lots of opportunities (no just rdrand).   */
+        unsigned long long poof[4];
+        byte* ppoof = ((byte*)poof)+3;
+        rc = RAND_bytes(ppoof, sizeof(unsigned long long)*2);
+        err = ERR_get_error();
+        assert(1 == rc);
+        if(1 != rc) {
+            fprintf(stderr, "RAND_bytes (2) failed, err = 0x%lx\n", err);
+            break; /* failed */
+        }
+        
+        fprintf(stdout, "Finished generating bytes\n");
+        
+        ret = EXIT_SUCCESS;
+        
+    } while(0);
+    
+    
+    if(eng2)
+        ENGINE_finish(eng2);
+    
+    if(eng1)
+        ENGINE_free(eng1);
+    
+    ENGINE_cleanup();
+    
+    return ret;
+}

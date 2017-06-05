@@ -1,0 +1,82 @@
++ /bin/bash -e
++ sleep 5
++ PORT=5612
++ echo 'INFO: Starting the client on port 5612'
+INFO: Starting the client on port 5612
++ cd src/user1
++ ./run_tests.sh 5612
+INFO: Functional Tests START
+INFO: This is user: user1
+INFO: Test PUT
+> sending file blocks ... 
+send_file done
+> sending file blocks ... #
+send_file done
+> sending file blocks ... #################################################################################################
+send_file done
+> INFO: PUT plaintext.txt
+PUT plaintext.txt: Passed
+------------------------------------------------------------------------------
+INFO: PUT faq.pdf
+PUT faq.pdf: Passed
+------------------------------------------------------------------------------
+INFO: PUT ducks.jpg
+PUT ducks.jpg: Passed
+------------------------------------------------------------------------------
+INFO: Test LS
+Apr 23 2017 14:04      438 plaintext.txt
+Apr 23 2017 14:04    73424 faq.pdf
+Apr 23 2017 14:04  3978352 ducks.jpg
+------------------------------------------------------------------------------
+INFO: Test GET
+> receiving file blocks ... 
+receive file done
+receiving file blocks ... 
+receive file done
+> receiving file blocks ... #
+receive file done
+receiving file blocks ... 
+receive file done
+> receiving file blocks ... #################################################################################################
+receive file done
+receiving file blocks ... 
+receive file done
+> ------------------------------------------------------------------------------
+INFO: GET plaintext.txt
+receiving file blocks ... 
+receive file done
+receiving file blocks ... 
+receive file done
+GET plaintext.txt: Passed
+INFO: Verfiy plaintext.txt after get. Expected to succeed.
+File verified. Uploaded by user1 on Sun Apr 23 14:04:28 2017
+Verfiy plaintext.txt: Passed
+------------------------------------------------------------------------------
+INFO: GET faq.pdf
+receiving file blocks ... #
+receive file done
+receiving file blocks ... 
+receive file done
+GET faq.pdf: Passed
+INFO: Verfiy faq.pdf after get. Expected to succeed.
+File verified. Uploaded by user1 on Sun Apr 23 14:04:28 2017
+Verfiy faq.pdf: Passed
+------------------------------------------------------------------------------
+INFO: GET ducks.jpg
+receiving file blocks ... #################################################################################################
+receive file done
+receiving file blocks ... 
+receive file done
+GET ducks.jpg: Passed
+INFO: Verfiy ducks.jpg after get. Expected to succeed.
+File verified. Uploaded by user1 on Sun Apr 23 14:04:29 2017
+Verfiy ducks.jpg: Passed
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+Tests Executed: 9
+Tests Passed:   9
+Tests Failed:   0
++ RC=0
++ '[' 0 -eq 0 ']'
++ echo 'INFO: All tests passed'
+INFO: All tests passed

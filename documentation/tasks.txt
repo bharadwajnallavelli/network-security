@@ -1,0 +1,28 @@
+Server/Client socket infrastructure – Listening on a port, accepting requests from the client, connecting to a socket - Terry
+
+Command line parser for client and server – This will need to be updated as commands are added.
+ 
+CLI infrastructure – This will also need to be updated as commands are added   
+ 
+Public key exchange – I think it would easiest if one person did both the client and the server side as they need to be debugged together - Terry
+ 
+Generation of the session key and the exchange of the session key
+ 
+Generation of users’ public/private keys
+ 
+User authorization – Server commands to authorize a particular user (includes the key ring), client authorization on the server, client requests to be authorized – Again this might be easier if one person did both sides
+ 
+Encryption and decryption
+ 
+Server transaction logging and commands in the CLI to view it
+ 
+Client hashing of a file to be uploaded with the user’s identity
+ 
+Client/Server requests to upload and download files
+ 
+Server verification of the uploaded file hash
+ 
+Management of list of authorized users for an uploaded file
+ 
+CA function or separate process (I recommend that we at least start with a function and then if we get ambitious we can opt to build a CA server). We can have it read from a file a list of user identities and their public keys.
+ 

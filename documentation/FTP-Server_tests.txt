@@ -1,0 +1,48 @@
+INFO: Starting the server on port 5612
+Name of caller: user1
+receiving file blocks ... 
+receive file done
+receiving file blocks ... #
+receive file done
+receiving file blocks ... #################################################################################################
+receive file done
+Name of caller: user1
+Name of caller: user1
+sending file blocks ... 
+send_file done
+sending file blocks ... 
+send_file done
+sending file blocks ... #
+send_file done
+sending file blocks ... 
+send_file done
+sending file blocks ... #################################################################################################
+send_file done
+sending file blocks ... 
+send_file done
+Name of caller: user1
+sending file blocks ... 
+send_file done
+sending file blocks ... 
+send_file done
+Name of caller: user1
+Name of caller: user1
+sending file blocks ... #
+send_file done
+sending file blocks ... 
+send_file done
+Name of caller: user1
+Name of caller: user1
+sending file blocks ... #################################################################################################
+send_file done
+sending file blocks ... 
+send_file done
+Name of caller: user1
+Name of caller: user2
+sending file blocks ... #################################################################################################
+send_file done
+sending file blocks ... 
+send_file done
+Name of caller: user2
+/tmp/jenkins1779785011439999574.sh: line 6: 15774 Terminated              ./pictstord $PORT
+INFO: Server terminated by the client. This is not an error.
